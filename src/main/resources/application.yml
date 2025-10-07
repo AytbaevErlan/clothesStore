@@ -1,0 +1,22 @@
+server:
+  port: 8080
+spring:
+    datasource:
+      url: jdbc:mysql://localhost:3306/store?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      username: root
+      password: root
+    jpa:
+      hibernate:
+        ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate.format_sql: true
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger
+app:
+  jwt:
+    secret: "change-this-secret-to-256-bit-random"
+    expiration: 3600000 # 1 hour in msÒ

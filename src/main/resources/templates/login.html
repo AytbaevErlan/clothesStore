@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><title>Login</title></head>
+<body>
+<div th:replace="layout :: nav"></div>
+
+<h1>Login</h1>
+<form id="loginForm">
+    <label>Email <input id="email" type="email" required></label><br>
+    <label>Password <input id="password" type="password" required></label><br>
+    <button type="submit">Login</button>
+</form>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type':'application/json' },
+                body: JSON.stringify({
+                    email: document.getElementById('email').value.trim(),
+                    password: document.getElementById('password').value
+                })
+            });
+            if (!res.ok) { alert('Login failed'); return; }
+            const { token } = await res.json();
+            localStorage.setItem('token', token);          // saved here
+            location.href = '/products';
+        } catch {
+            alert('Network error');
+        }
+    });
+</script>
+</body>
+</html>

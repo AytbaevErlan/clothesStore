@@ -1,0 +1,16 @@
+<!DOCTYPE html><html><body>
+<h1>Register</h1>
+<input id="email" placeholder="email"/>
+<input id="pass" type="password" placeholder="password"/>
+<input id="fn" placeholder="first name"/><input id="ln" placeholder="last name"/>
+<button id="reg">Register</button>
+<script>
+    document.getElementById('reg').onclick = async () => {
+        const body = { email: email.value, password: pass.value, firstName: fn.value, lastName: ln.value };
+        const res = await fetch('/api/auth/register',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        const data = await res.json();
+        if(data.token){ localStorage.setItem('token', data.token); location.href='/products'; }
+        else alert('Register failed');
+    };
+</script>
+</body></html>

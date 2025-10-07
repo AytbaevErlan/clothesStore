@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title th:replace="~{::title}">Store</title>
+    <link rel="stylesheet" href="/css/styles.css"/>
+</head>
+<body>
+
+<nav th:fragment="nav">
+    <a href="/">Home</a> |
+    <a href="/products">Products</a> |
+    <a href="/cart">Cart</a> |
+    <a href="/orders">Orders</a> |
+    <a href="/admin">Admin</a> |
+    <a href="/register">Register</a> |
+    <a href="/admin">Admin</a> |
+    <a href="/login" id="loginL">Login</a>
+    <a href="#" id="logout">Logout</a>
+</nav>
+
+
+<script>
+    function updateNav(){
+        const t = localStorage.getItem('token');
+        const nav = document.querySelector('nav');
+        if (!nav) return;
+        if (t && !document.getElementById('logout')){
+            const a = document.createElement('a');
+            a.id='logout'; a.href='#'; a.innerText='Logout';
+            a.onclick = () => { localStorage.removeItem('token'); location.href='/login'; };
+            nav.append(' | ', a);
+        }
+    }
+    updateNav();
+</script>
+
+<div th:fragment="content">
+    <!-- child pages replace this -->
+</div>
+<main>
+    <section th:replace="~{::section}"></section>
+</main>
+<footer>
+    <p>© 2025 Store</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><title>Cart</title></head>
+<body>
+<div th:replace="layout :: nav"></div>
+
+<h1>Your Cart</h1>
+<ul id="lines"></ul>
+<p><b>Total: <span id="total">0.00</span></b></p>
+<button id="checkout">Checkout</button>
+
+<script>
+    (async function () {
+        const t = localStorage.getItem('token');
+        if (!t) { document.body.innerHTML = 'Login required'; return; }
+
+        try {
+            const res = await fetch('/api/cart', { headers:{ Authorization:`Bearer ${t}` }});
+            if (!res.ok) throw new Error(await res.text());
+
+            const cart = await res.json();
+            const ul = document.getElementById('lines');
+            ul.innerHTML = '';
+
+            let total = 0;
+            cart.items.forEach(it => {
+                const line = Number(it.unitPrice) * Number(it.quantity);
+                total += line;
+
+                const li = document.createElement('li');
+                li.textContent = `${it.name} × ${it.quantity} = ${line.toFixed(2)}`;
+                ul.appendChild(li);
+            });
+
+            document.getElementById('total').textContent = total.toFixed(2);
+        } catch (e) {
+            document.body.innerHTML = 'Failed to load';
+            console.error(e);
+        }
+
+        document.getElementById('checkout').onclick = async () => {
+            const res = await fetch('/api/orders/checkout', {
+                method:'POST',
+                headers:{ Authorization:`Bearer ${t}` }
+            });
+            if (res.ok) location.href = '/orders'; else alert('Checkout failed');
+        };
+    })();
+</script>
+
+</body>
+</html>

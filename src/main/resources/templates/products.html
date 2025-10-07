@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><title>Products</title></head>
+<body>
+<div th:replace="layout :: nav"></div>
+
+<h1>Products</h1>
+
+<form method="get" action="/products">
+    <label>Search</label>
+    <input type="text" name="q" th:value="${q}">
+    <button type="submit">Search</button>
+</form>
+
+<div th:if="${#lists.isEmpty(products)}">No items.</div>
+
+<div th:each="p : ${products}">
+    <article>
+        <img th:if="${p.imageUrl}" th:src="${p.imageUrl}" alt="img" style="height:120px"/>
+        <h3 th:text="${p.name}">name</h3>
+        <p th:text="${p.categoryName}">category</p>
+        <strong th:text="${p.price}">0.00</strong>
+        <button type="button" class="add" th:attr="data-id=${p.id}">Add to cart</button>
+    </article>
+    <hr/>
+</div>
+
+<div>
+    <a th:if="${!pg.first}" th:href="@{/products(page=${pg.number-1},size=${pg.size},q=${q})}">Prev</a>
+    <span th:text="${pg.number+1}"></span>/<span th:text="${pg.totalPages}"></span>
+    <a th:if="${!pg.last}" th:href="@{/products(page=${pg.number+1},size=${pg.size},q=${q})}">Next</a>
+</div>
+
+<script>
+    document.addEventListener('click', async (e) => {
+        if (!e.target.classList.contains('add')) return;
+
+        const id = e.target.getAttribute('data-id');
+        const t = localStorage.getItem('token');
+        if (!t) { alert('Login first'); location.href='/login'; return; }
+
+        try {
+            const res = await fetch(`/api/cart/add/${id}?qty=1`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${t}` }
+            });
+            if (!res.ok) throw new Error(await res.text());
+            alert('Added');
+        } catch (err) {
+            console.error(err);
+            alert('Failed');
+        }
+    });
+</script>
+
+</body>
+</html>

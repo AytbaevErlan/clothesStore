@@ -1,0 +1,29 @@
+<h1>Your Orders</h1>
+<ul id="orders"></ul>
+<script>
+    (async function () {
+        const t = localStorage.getItem('token');
+        if (!t) { document.body.innerHTML = 'Login required'; return; }
+
+        try {
+            const res = await fetch('/api/orders', { headers:{ Authorization:`Bearer ${t}` }});
+            if (!res.ok) throw new Error(await res.text());
+            const orders = await res.json(); // expect an array
+
+            const ul = document.getElementById('orders');
+            ul.innerHTML = '';
+            orders.forEach(o => {
+                const li = document.createElement('li');
+                const when = (o.createdAt ?? '').toString().replace('T',' ').replace('Z','');
+                const items = (o.items || [])
+                    .map(it => `${it.name} × ${it.quantity} @ ${Number(it.priceAtPurchase).toFixed(2)}`)
+                    .join('; ');
+                li.textContent = `#${o.id} • ${when} • total ${Number(o.total).toFixed(2)} • ${items}`;
+                ul.appendChild(li);
+            });
+        } catch (e) {
+            document.body.innerHTML = 'Failed to load';
+            console.error(e);
+        }
+    })();
+</script>
