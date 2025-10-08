@@ -1,30 +1,43 @@
 package com.school.storeapplication.domain.catalog;
 
+import com.school.storeapplication.domain.user.User;
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.math.BigDecimal;
 
 @Entity
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Table(name = "product") // <-- IMPORTANT: match the Flyway table name
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
 public class Product {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)  private String name;
-    @Column(nullable = false)  private String description;
-    @Column(nullable = false)  private BigDecimal price;
+    @Column(nullable = false, length = 150)
+    private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, length = 500)
+    private String description;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal price;
+
+    @Column(nullable = false, unique = true, length = 64)
     private String sku;
 
-    @Column(nullable = false)  private Integer stock;
+    @Column(nullable = false)
+    private Integer stock;
+
     private String imageUrl;
 
-    @ManyToOne(optional = false)
+    @Column(nullable = false)
+    private Boolean active = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-    // NEW: soft-delete flag (default true = visible)
-    @Column(nullable = false)
-    private boolean active = true;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_id")
+    private User seller;
 }

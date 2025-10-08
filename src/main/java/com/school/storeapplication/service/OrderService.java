@@ -1,7 +1,9 @@
 package com.school.storeapplication.service;
 
+import com.school.storeapplication.domain.catalog.Product;
 import com.school.storeapplication.domain.order.Order;
 import com.school.storeapplication.domain.order.OrderItem;
+import com.school.storeapplication.domain.user.User;
 import com.school.storeapplication.dto.OrderDto;
 import com.school.storeapplication.mapper.OrderMapper;
 import com.school.storeapplication.repo.CartRepository;
@@ -29,41 +31,55 @@ public class OrderService {
 
     @Transactional
     public OrderDto checkout(String email) {
-        var u = users.findByEmail(email).orElseThrow();
+        for (int attempt = 1; ; attempt++) {
+            try {
+                return doCheckout(email);  // your current logic moved into a private method
+            } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
+                if (attempt >= 3) throw e; // give up after retries
+            }
+        }
+    }
+    @Transactional
+    public OrderDto doCheckout(String email) {
+        User u = users.findByEmail(email).orElseThrow();
         var cart = carts.findByUser(u).orElseThrow();
-        if (cart.getItems().isEmpty()) throw new IllegalStateException("cart empty");
+        if (cart.getItems().isEmpty()) throw new IllegalStateException("Cart is empty");
 
         var order = Order.builder().user(u).createdAt(Instant.now()).build();
-        var items = new ArrayList<OrderItem>();
         BigDecimal total = BigDecimal.ZERO;
+        List<OrderItem> items = new ArrayList<>();
 
         for (var ci : cart.getItems()) {
-            var p = ci.getProduct();
-            int qty = ci.getQuantity();
-            if (p.getStock() < qty) throw new IllegalStateException("insufficient stock for product " + p.getId());
+            Product product = ci.getProduct();
+            if (product.getStock() < ci.getQuantity()) {
+                throw new IllegalStateException("Insufficient stock for " + product.getName());
+            }
 
-            p.setStock(p.getStock() - qty);
-            total = total.add(p.getPrice().multiply(BigDecimal.valueOf(qty)));
+            // Decrease stock
+            product.setStock(product.getStock() - ci.getQuantity());
 
+            var line = product.getPrice().multiply(BigDecimal.valueOf(ci.getQuantity()));
+            total = total.add(line);
             items.add(OrderItem.builder()
                     .order(order)
-                    .product(p)
-                    .quantity(qty)
-                    .priceAtPurchase(p.getPrice())
+                    .product(product)
+                    .quantity(ci.getQuantity())
+                    .priceAtPurchase(product.getPrice())
                     .build());
         }
 
         order.setTotal(total);
         order.setItems(items);
+        var saved = orders.save(order);
 
-        var saved = orders.save(order);   // cascades items
-        cart.getItems().clear();          // requires orphanRemoval on Cart.items
+        // Clear cart
+        cart.getItems().clear();
         carts.save(cart);
 
-        // Build DTO manually (we only map OrderItem -> OrderItemDto via MapStruct)
         var itemDtos = saved.getItems().stream().map(mapper::toDto).toList();
         return new OrderDto(saved.getId(), saved.getTotal(), saved.getCreatedAt(), itemDtos);
     }
+
 
     @Transactional(readOnly = true)
     public List<OrderDto> history(String email) {
@@ -75,4 +91,19 @@ public class OrderService {
         }
         return result;
     }
+
+    @Transactional
+    public void cancel(String email, Long id) {
+        var o = orders.findById(id).orElseThrow();
+        if (!o.getUser().getEmail().equals(email)) throw new IllegalArgumentException("Forbidden");
+        if (o.getCreatedAt().isBefore(Instant.now().minusSeconds(900))) // 15 min
+            throw new IllegalStateException("Cancellation window passed");
+        // restock
+        o.getItems().forEach(i -> {
+            var p = i.getProduct();
+            p.setStock(p.getStock() + i.getQuantity());
+        });
+        orders.delete(o);
+    }
+
 }

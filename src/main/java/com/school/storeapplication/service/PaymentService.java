@@ -7,13 +7,10 @@ import com.school.storeapplication.repo.PaymentRepository;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
 
-import java.time.Instant;
-
 @Service
 public class PaymentService {
     private final PaymentRepository payments; private final OrderRepository orders;
     public PaymentService(PaymentRepository p, OrderRepository o) { this.payments = p; this.orders = o; }
-
 
     public Payment createMock(Long orderId) {
         Order o = orders.findById(orderId).orElseThrow();

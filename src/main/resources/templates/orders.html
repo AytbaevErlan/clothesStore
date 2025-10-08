@@ -1,29 +1,67 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><title>Orders</title></head>
+<body>
+<div th:replace="layout :: nav"></div>
 <h1>Your Orders</h1>
 <ul id="orders"></ul>
+
 <script>
-    (async function () {
-        const t = localStorage.getItem('token');
-        if (!t) { document.body.innerHTML = 'Login required'; return; }
-
-        try {
-            const res = await fetch('/api/orders', { headers:{ Authorization:`Bearer ${t}` }});
-            if (!res.ok) throw new Error(await res.text());
-            const orders = await res.json(); // expect an array
-
-            const ul = document.getElementById('orders');
-            ul.innerHTML = '';
-            orders.forEach(o => {
-                const li = document.createElement('li');
-                const when = (o.createdAt ?? '').toString().replace('T',' ').replace('Z','');
-                const items = (o.items || [])
-                    .map(it => `${it.name} × ${it.quantity} @ ${Number(it.priceAtPurchase).toFixed(2)}`)
-                    .join('; ');
-                li.textContent = `#${o.id} • ${when} • total ${Number(o.total).toFixed(2)} • ${items}`;
-                ul.appendChild(li);
-            });
-        } catch (e) {
-            document.body.innerHTML = 'Failed to load';
-            console.error(e);
+    (function () {
+        function isBuyer() {
+            try {
+                const t = localStorage.getItem('token');
+                if (!t) return false;
+                const payload = JSON.parse(atob(t.split('.')[1]));
+                return (payload.roles || []).includes('ROLE_BUYER');
+            } catch { return false; }
         }
+
+        // Guard: Buyer only
+        if (!isBuyer()) {
+            // keep the nav visible, but show a friendly message
+            const ul = document.getElementById('orders');
+            if (ul) ul.remove();
+            const msg = document.createElement('p');
+            msg.textContent = 'This page is for BUYER accounts only.';
+            document.body.appendChild(msg);
+            return; // IMPORTANT: stop here so no fetch runs
+        }
+
+        // Buyer: load orders
+        (async function load() {
+            try {
+                const t = localStorage.getItem('token');
+                const res = await fetch('/api/orders', { headers: { Authorization: `Bearer ${t}` } });
+                if (!res.ok) throw new Error(await res.text());
+                const orders = await res.json();
+
+                const ul = document.getElementById('orders');
+                ul.innerHTML = '';
+                if (!orders.length) {
+                    const li = document.createElement('li');
+                    li.textContent = 'No orders yet.';
+                    ul.appendChild(li);
+                    return;
+                }
+                orders.forEach(o => {
+                    const when = (o.createdAt ?? '').toString().replace('T',' ').replace('Z','');
+                    const items = (o.items || [])
+                        .map(it => `${it.name} × ${it.quantity} @ ${Number(it.priceAtPurchase).toFixed(2)}`)
+                        .join('; ');
+                    const li = document.createElement('li');
+                    li.textContent = `#${o.id} • ${when} • total ${Number(o.total).toFixed(2)} • ${items}`;
+                    ul.appendChild(li);
+                });
+            } catch (e) {
+                console.error(e);
+                const err = document.createElement('p');
+                err.textContent = 'Failed to load';
+                document.body.appendChild(err);
+            }
+        })();
     })();
 </script>
+
+</body>
+</html>

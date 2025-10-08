@@ -1,9 +1,19 @@
 package com.school.storeapplication.dto;
 
-
+import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 
 public record ProductDto(
-        Long id, String name, String description, BigDecimal price,
-        String sku, Integer stock, String imageUrl, Long categoryId, String categoryName
+        Long id,
+        @NotBlank String name,
+        @NotBlank String description,
+        @NotNull @DecimalMin("0.00") BigDecimal price,
+        @NotBlank String sku,
+        @NotNull @Min(0) Integer stock,
+        @Size(max = 2048) String imageUrl,
+        @NotNull Long categoryId,
+        String categoryName,
+        Boolean active,
+        Long sellerId,
+        String sellerEmail
 ) {}

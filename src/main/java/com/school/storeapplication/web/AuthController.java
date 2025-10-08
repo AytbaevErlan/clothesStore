@@ -1,6 +1,5 @@
 package com.school.storeapplication.web;
 
-
 import com.school.storeapplication.dto.AuthResponse;
 import com.school.storeapplication.dto.LoginRequest;
 import com.school.storeapplication.dto.RegisterRequest;
@@ -11,30 +10,33 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-    private final AuthenticationManager am; private final JwtUtils jwt; private final UserService users;
-    public AuthController(AuthenticationManager am, JwtUtils jwt, UserService users) { this.am = am; this.jwt = jwt; this.users = users; }
+    private final AuthenticationManager am;
+    private final JwtUtils jwt;
+    private final UserService users;
 
+    public AuthController(AuthenticationManager am, JwtUtils jwt, UserService users) {
+        this.am = am; this.jwt = jwt; this.users = users;
+    }
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Validated @RequestBody RegisterRequest r) {
         var u = users.registerBuyer(r);
-        var token = jwt.generate(u.getEmail());
+        var roles = u.getRoles().stream().map(Enum::name).toList();
+        var token = jwt.generate(u.getEmail(), roles);
         return ResponseEntity.ok(new AuthResponse(token));
     }
-
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Validated @RequestBody LoginRequest r) {
         Authentication auth = am.authenticate(new UsernamePasswordAuthenticationToken(r.email(), r.password()));
-        var token = jwt.generate(r.email());
+        var principal = (org.springframework.security.core.userdetails.User) auth.getPrincipal();
+        var roles = principal.getAuthorities().stream().map(a -> a.getAuthority()).toList();
+        var token = jwt.generate(r.email(), roles);
         return ResponseEntity.ok(new AuthResponse(token));
     }
 }

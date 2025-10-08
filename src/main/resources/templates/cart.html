@@ -10,43 +10,69 @@
 <button id="checkout">Checkout</button>
 
 <script>
-    (async function () {
-        const t = localStorage.getItem('token');
-        if (!t) { document.body.innerHTML = 'Login required'; return; }
-
-        try {
-            const res = await fetch('/api/cart', { headers:{ Authorization:`Bearer ${t}` }});
-            if (!res.ok) throw new Error(await res.text());
-
-            const cart = await res.json();
-            const ul = document.getElementById('lines');
-            ul.innerHTML = '';
-
-            let total = 0;
-            cart.items.forEach(it => {
-                const line = Number(it.unitPrice) * Number(it.quantity);
-                total += line;
-
-                const li = document.createElement('li');
-                li.textContent = `${it.name} × ${it.quantity} = ${line.toFixed(2)}`;
-                ul.appendChild(li);
-            });
-
-            document.getElementById('total').textContent = total.toFixed(2);
-        } catch (e) {
-            document.body.innerHTML = 'Failed to load';
-            console.error(e);
+    (function () {
+        function isBuyer() {
+            try {
+                const t = localStorage.getItem('token');
+                if (!t) return false;
+                const payload = JSON.parse(atob(t.split('.')[1]));
+                return (payload.roles || []).includes('ROLE_BUYER');
+            } catch { return false; }
         }
 
+        // Guard: Buyer only
+        if (!isBuyer()) {
+            const lines = document.getElementById('lines');
+            if (lines) lines.remove();
+            document.getElementById('total').textContent = '0.00';
+            const p = document.createElement('p');
+            p.textContent = 'This page is for BUYER accounts only.';
+            document.body.appendChild(p);
+            return; // IMPORTANT
+        }
+
+        const token = localStorage.getItem('token');
+
+        // Load cart
+        (async function loadCart(){
+            try {
+                const res = await fetch('/api/cart', { headers:{ Authorization:`Bearer ${token}` }});
+                if (!res.ok) throw new Error(await res.text());
+
+                const cart = await res.json();
+                const ul = document.getElementById('lines');
+                ul.innerHTML = '';
+
+                let total = 0;
+                (cart.items || []).forEach(it => {
+                    const line = Number(it.unitPrice) * Number(it.quantity);
+                    total += line;
+
+                    const li = document.createElement('li');
+                    li.textContent = `${it.name} × ${it.quantity} = ${line.toFixed(2)}`;
+                    ul.appendChild(li);
+                });
+                document.getElementById('total').textContent = total.toFixed(2);
+            } catch (e) {
+                console.error(e);
+                document.body.appendChild(Object.assign(document.createElement('p'),{textContent:'Failed to load cart.'}));
+            }
+        })();
+
+        // Checkout
         document.getElementById('checkout').onclick = async () => {
-            const res = await fetch('/api/orders/checkout', {
-                method:'POST',
-                headers:{ Authorization:`Bearer ${t}` }
-            });
-            if (res.ok) location.href = '/orders'; else alert('Checkout failed');
+            try {
+                const res = await fetch('/api/orders/checkout', { method:'POST', headers:{ Authorization:`Bearer ${token}` }});
+                if (res.ok) location.href = '/orders';
+                else alert('Checkout failed\n' + await res.text());
+            } catch (e) {
+                console.error(e);
+                alert('Checkout failed');
+            }
         };
     })();
 </script>
+
 
 </body>
 </html>

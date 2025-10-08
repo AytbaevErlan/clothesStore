@@ -29,29 +29,36 @@
   (async function () {
     const t = localStorage.getItem('token');
     if (!t) { alert('Login as ADMIN first'); location.href='/login'; return; }
-
     const auth = { Authorization: `Bearer ${t}`, 'Content-Type':'application/json' };
 
     async function load() {
       const res = await fetch('/api/admin/products', { headers: auth });
-      if (!res.ok) { alert('403? Need ADMIN token.'); return; }
+      const ul = document.getElementById('list');
+      ul.innerHTML = '';
+      if (!res.ok) { ul.textContent = 'Forbidden'; return; }
       const arr = await res.json();
-      const ul = document.getElementById('list'); ul.innerHTML = '';
+      if (!arr.length) { ul.textContent = 'No products available.'; return; }
       arr.forEach(p => {
         const li = document.createElement('li');
-        li.innerHTML = `#${p.id} ${p.name} (${p.sku}) – ${p.price}
-        <button data-id="${p.id}" class="del">Delete</button>`;
+        li.innerHTML = `#${p.id} ${p.name} (${p.sku}) – ${p.price} • active=${p.active}`;
+        const del = document.createElement('button');
+        del.textContent = 'Delete';
+        del.onclick = async () => {
+          const r = await fetch('/api/admin/products/' + p.id, { method:'DELETE', headers:auth });
+          if (r.ok || r.status === 204) load(); else alert('Delete failed');
+        };
+        const tog = document.createElement('button');
+        tog.textContent = 'Toggle Active';
+        tog.onclick = async () => {
+          const r = await fetch(`/api/admin/products/${p.id}/active?active=${!p.active}`, { method:'PATCH', headers:auth });
+          if (r.ok || r.status === 204) load(); else alert('Toggle failed');
+        };
+        li.append(' ', del, ' ', tog);
         ul.appendChild(li);
-      });
-      // delete handlers
-      ul.querySelectorAll('.del').forEach(b => b.onclick = async () => {
-        const id = b.getAttribute('data-id');
-        const r = await fetch('/api/admin/products/'+id, { method:'DELETE', headers: auth });
-        if (r.ok) load(); else alert('Delete failed');
       });
     }
 
-    document.getElementById('createForm').onsubmit = async (e) => {
+    document.getElementById('createForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const body = {
         name:        document.getElementById('name').value.trim(),
@@ -62,10 +69,10 @@
         imageUrl:    document.getElementById('img').value.trim(),
         categoryId:  Number(document.getElementById('cat').value)
       };
-      const r = await fetch('/api/admin/products', { method:'POST', headers: auth, body: JSON.stringify(body) });
+      const r = await fetch('/api/admin/products', { method:'POST', headers:auth, body: JSON.stringify(body) });
       if (r.ok || r.status === 201) { e.target.reset(); load(); }
       else { alert('Create failed'); console.error(await r.text()); }
-    };
+    });
 
     load();
   })();

@@ -5,15 +5,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
+import java.util.Optional;
+
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
-    Page<Product> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    Optional<Product> findBySku(String sku);
+    Page<Product> findAllByActiveTrue(Pageable pageable);
+    Page<Product> findByNameContainingIgnoreCaseAndActiveTrue(String name, Pageable pageable);
+    Optional<Product> findByIdAndActiveTrue(Long id);
+
     boolean existsBySku(String sku);
-
-    // For public catalog
-    Page<Product> findByActiveTrue(Pageable pageable);
-    Page<Product> findByActiveTrueAndNameContainingIgnoreCase(String q, Pageable pageable);
-
-    List<Product> findAllByActiveTrue();
 }
+
+
+

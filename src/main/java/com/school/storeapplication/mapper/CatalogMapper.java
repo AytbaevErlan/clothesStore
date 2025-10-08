@@ -10,7 +10,10 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface CatalogMapper {
     CategoryDto toDto(Category c);
+
     @Mapping(target = "categoryId", source = "category.id")
     @Mapping(target = "categoryName", source = "category.name")
+    @Mapping(target = "sellerId", source = "seller.id")
+    @Mapping(target = "sellerEmail", source = "seller.email")
     ProductDto toDto(Product p);
 }

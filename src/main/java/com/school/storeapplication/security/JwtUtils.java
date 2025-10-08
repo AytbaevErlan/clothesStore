@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.util.Collection;
 import java.util.Date;
 
 @Component
@@ -21,6 +22,8 @@ public class JwtUtils {
         this.expirationMs = expirationMs;
     }
 
+
+
     public String generate(String subject){
         long now = System.currentTimeMillis();
         return Jwts.builder() // check this one later
@@ -30,6 +33,18 @@ public class JwtUtils {
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
+    public String generate(String subject, Collection<String> roles) {
+        long now = System.currentTimeMillis();
+        return Jwts.builder()
+                .setSubject(subject)
+                .claim("roles", roles)
+                .setIssuedAt(new Date(now))
+                .setExpiration(new Date(now + expirationMs))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+
 
 
     public String validateAndGetSubject(String token) {

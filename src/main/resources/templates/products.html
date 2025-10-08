@@ -20,7 +20,12 @@
         <h3 th:text="${p.name}">name</h3>
         <p th:text="${p.categoryName}">category</p>
         <strong th:text="${p.price}">0.00</strong>
-        <button type="button" class="add" th:attr="data-id=${p.id}">Add to cart</button>
+        <p>
+            <span th:text="${p.categoryName}"></span>
+            <span> • </span>
+            <span th:text="'Stock: ' + ${p.stock}"></span>
+        </p>
+        <button type="button" class="add" th:disabled="${p.stock == 0}" th:attr="data-id=${p.id}">Add to cart</button>
     </article>
     <hr/>
 </div>
@@ -32,11 +37,38 @@
 </div>
 
 <script>
+    function isBuyer(){
+        try{
+            const t = localStorage.getItem('token');
+            if(!t) return false;
+            const payload = JSON.parse(atob(t.split('.')[1]));
+            const roles = payload.roles || [];
+            return roles.includes('ROLE_BUYER');
+        }catch{ return false; }
+    }
+
+    // Hide Add buttons for non-buyers
+    (function guardButtons(){
+        const buyer = isBuyer();
+        document.querySelectorAll('button.add').forEach(b=>{
+            if(!buyer){
+                b.disabled = true;
+                b.title = 'Login as Buyer to purchase';
+                b.style.opacity = '0.5';
+            }
+        });
+    })();
+
     document.addEventListener('click', async (e) => {
         if (!e.target.classList.contains('add')) return;
 
+        if(!isBuyer()){
+            alert('Only BUYER accounts can add items to cart.');
+            return;
+        }
+
         const id = e.target.getAttribute('data-id');
-        const t = localStorage.getItem('token');
+        const t  = localStorage.getItem('token');
         if (!t) { alert('Login first'); location.href='/login'; return; }
 
         try {
@@ -52,6 +84,16 @@
         }
     });
 </script>
+<script>
+    (function(){
+        const t = localStorage.getItem('token');
+        let isBuyer = false;
+        try { isBuyer = t && JSON.parse(atob(t.split('.')[1])).roles.includes('ROLE_BUYER'); } catch {}
+        document.querySelectorAll('button.add').forEach(b => b.style.display = isBuyer ? '' : 'none');
+    })();
+</script>
+
+
 
 </body>
 </html>

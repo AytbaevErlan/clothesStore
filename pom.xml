@@ -34,6 +34,16 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
+        <!-- Flyway migration -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <!-- MySQL-specific support -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
     <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-thymeleaf</artifactId>
@@ -86,7 +96,6 @@
         <version>${mapstruct.version}</version>
         <scope>provided</scope>
     </dependency>
-
 <!-- JWT -->
 <dependency>
     <groupId>io.jsonwebtoken</groupId>
@@ -105,6 +114,8 @@
     <version>${jjwt.version}</version>
     <scope>runtime</scope>
 </dependency>
+
+
 
 
 <!-- Test -->
@@ -150,6 +161,20 @@
             </annotationProcessorPaths>
         </configuration>
     </plugin>
+    <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+            <systemPropertyVariables>
+                <ADMIN_JWT>${env.ADMIN_JWT}</ADMIN_JWT>
+                <DB_URL>${env.DB_URL}</DB_URL>
+                <DB_USERNAME>${env.DB_USERNAME}</DB_USERNAME>
+                <DB_PASSWORD>${env.DB_PASSWORD}</DB_PASSWORD>
+            </systemPropertyVariables>
+        </configuration>
+    </plugin>
+
 </plugins>
 </build>
 </project>
